@@ -118,8 +118,8 @@ int main(void)
   HAL_UART_Receive_IT(&huart2, cadena, 1);
 
   // CS pin should default high
-  HAL_GPIO_WritePin(SPI2_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(SPI2_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(SPI_CS1_GPIO_Port, SPI_CS1_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(SPI_CS1_GPIO_Port, SPI_CS1_Pin, GPIO_PIN_RESET);
 
   // Sube CS del SPI1 para bloquear la comunicación
   HAL_GPIO_WritePin(SPI_CS1_GPIO_Port, SPI_CS1_Pin, 1);
@@ -203,7 +203,7 @@ int main(void)
 
 	HAL_UART_Transmit(&huart2, (uint8_t *)buffer, strlen(buffer), 100);
 	HAL_UART_Transmit(&huart2, (uint8_t *)buffer2, strlen(buffer2), 100);
-/*
+
 	HAL_Delay(200);
 
 	float temp_2d = roundf(temp * 100) / 100;
@@ -212,7 +212,7 @@ int main(void)
 	max7219_Clean();
 	max7219_PrintFtos(DIGIT_8, temp_2d, 2);
 	max7219_PrintFtos(DIGIT_4, temp2_2d, 2);
-*/
+
 
 	HAL_Delay(1000);
 

@@ -157,12 +157,11 @@ int main(void)
 	*/
 	HAL_Delay(1500);
 
-	/*
 	max7219_Clean();
 	max7219_PrintNtos(DIGIT_8, 765, 4);
 	max7219_PrintItos(DIGIT_3, 321);
 	HAL_Delay(1500);
-	*/
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

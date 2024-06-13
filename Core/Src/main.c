@@ -23,6 +23,8 @@
 /* USER CODE BEGIN Includes */
 #include "string.h"
 #include "stdio.h"
+#include "stdbool.h"
+#include "stdlib.h"
 #include "max31856.h"
 #include "max7219.h"
 #include <math.h>
@@ -35,7 +37,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define MAX_COMND_COUNT 3 // Numero maximo de veces consecutivas para el mismo caracter
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -52,7 +54,13 @@ SPI_HandleTypeDef hspi3;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+uint8_t cadena[1]="0";
 
+char last_char = '\0'; // Variable para almacenar el último carácter recibido
+int same_char_count = 0; // Contador para contar la cantidad de veces consecutivas que se ha recibido el mismo carácter
+int chars_to_expect = -1; // Counter for the digits that should be sent from the SMART in commands like GGG
+
+int temperatures[16]={0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -107,6 +115,11 @@ int main(void)
   MX_SPI3_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  HAL_UART_Receive_IT(&huart2, cadena, 1);
+
+  // CS pin should default high
+  HAL_GPIO_WritePin(SPI2_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(SPI2_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_RESET);
 
   // Sube CS del SPI1 para bloquear la comunicación
   HAL_GPIO_WritePin(SPI_CS1_GPIO_Port, SPI_CS1_Pin, 1);
@@ -155,7 +168,7 @@ int main(void)
 	max7219_PrintDigit(DIGIT_2, LETTER_L, false);
 	max7219_PrintDigit(DIGIT_1, LETTER_P, false);
 	*/
-	HAL_Delay(1500);
+	//HAL_Delay(1500);
 
 	max7219_Clean();
 	max7219_PrintNtos(DIGIT_8, 765, 4);

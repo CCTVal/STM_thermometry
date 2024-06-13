@@ -56,8 +56,8 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 uint8_t cadena[1]="0";
 
-char last_char = '\0'; // Variable para almacenar el último carácter recibido
-int same_char_count = 0; // Contador para contar la cantidad de veces consecutivas que se ha recibido el mismo carácter
+char last_char = '\0'; // To record last character received
+int same_char_count = 0; // Counter for the consecutive times that a specific character has been received
 int chars_to_expect = -1; // Counter for the digits that should be sent from the SMART in commands like GGG
 
 int temperatures[16]={0};
@@ -301,7 +301,7 @@ static void MX_I2C1_Init(void)
 }
 
 /**
-  * @brief SPI2 Initialization Function
+  * @brief SPI2 Initialization Function for connecting with LED screen
   * @param None
   * @retval None
   */
@@ -339,7 +339,7 @@ static void MX_SPI2_Init(void)
 }
 
 /**
-  * @brief SPI3 Initialization Function
+  * @brief SPI3 Initialization Function for connecting with MAX thermocouples system
   * @param None
   * @retval None
   */
@@ -377,7 +377,7 @@ static void MX_SPI3_Init(void)
 }
 
 /**
-  * @brief USART2 Initialization Function
+  * @brief USART2 Initialization Function for connecting to SMART-1000
   * @param None
   * @retval None
   */
@@ -460,7 +460,122 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  /* Prevent unused argument(s) compilation warning */
+  if(huart->Instance == USART2)
+  {
+    if(--chars_to_expect != 0) {
+      switch(cadena[0]){
+        case 'I':
+          if(char_counter(cadena[0])){
+            done();
+          }
+          break;
+        case 'N':
+          if(char_counter(cadena[0])){
+            //HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
+            N_name_and_status_handler();
+          }
+          break;
+        case 'T':
+          if(char_counter(cadena[0])){
+             T_temperature_handler_V2();
+          }
+          break;
+        case 'V':
+          if(char_counter(cadena[0])){
+            chars_to_expect = 3;
+          }
+          break;
+        case 'G':
+          if(char_counter(cadena[0])){
+            chars_to_expect = 3;
+          }
+          break;
+        case 'E':
+          if(char_counter(cadena[0])){
+            chars_to_expect = 18;
+          }
+          break;
+        case 'F':
+          if(char_counter(cadena[0])){
+            chars_to_expect = 3;
+          }
+          break;
+        case 'R':
+          if(char_counter(cadena[0])){
+            T_temperature_handler_V2();
+          }
+          break;
 
+        default:
+          //HAL_UART_Transmit(&huart2, (uint8_t *)"Comando no reconocido\n", strlen("Comando no reconocido\n"), 100); // acá se debe poner una función tipo "No_recognized_command_handler"
+          break;
+      }
+    } else {
+      done();
+    }
+    HAL_UART_Receive_IT(&huart2, cadena, 1);
+  }
+}
+
+_Bool char_counter(char c) {
+  // Si el carácter recibido es diferente al último carácter almacenado
+  if (c != last_char) {
+    // Reiniciar el contador y actualizar el último carácter almacenado
+    same_char_count = 1;
+    last_char = c;
+  } else {
+    // Si es el mismo carácter, incrementar el contador
+    same_char_count++;
+  }
+
+  // Si se ha recibido el mismo carácter el número máximo de veces consecutivas
+  if (same_char_count >= MAX_COMND_COUNT) {
+    // Responder con un mensaje específico
+    //HAL_UART_Transmit(&huart2, (uint8_t *)"OK\n\r", strlen("OK\n\r"), 100);
+    // Reiniciar el contador y el último carácter almacenado
+    same_char_count = 0;
+    last_char = '\0';
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void N_name_and_status_handler(){
+  char respuesta_N[6]="111000"; // This is for LT-100. Comment for S-100
+  //char respuesta_N[6]="222000"; // This is for S-100. Comment for LT-100
+  char *s;
+  for ( s=respuesta_N; *s != '\0'; s++ ) {
+    HAL_UART_Transmit(&huart2,(uint8_t *)s , 1, 100);
+  }
+}
+
+void T_temperature_handler_V2(){
+  char temperatures_msg[70] = "EEE3500360037003800350036003700380035003600370038003500360037003800LH";
+
+  int i=0;
+  for(i=0;i<16;i++){
+    char temperature_str[5]={0};
+    sprintf(temperature_str, "%04d", temperatures[i]);  // falta ver que hacer para que funcione cuando el numero tiene menos de 4 digitos.
+    //strncpy(&temperatures_msg[3 + i * 4],temperature_str,4);
+  }
+
+  unsigned checksum = 0;
+  for (int i = 3; i < 3 + 4 * 16; i++) {
+    checksum += temperatures_msg[i];
+  }
+  int onChar = 3+64;
+  temperatures_msg[onChar++] = checksum % 256;
+  temperatures_msg[onChar++] = checksum / 256;
+
+  char *s;
+  for ( s=temperatures_msg; *s != '\0'; s++ ) {
+    HAL_UART_Transmit(&huart2,(uint8_t *)s , 1, 100);
+  }
+}
 /* USER CODE END 4 */
 
 /**

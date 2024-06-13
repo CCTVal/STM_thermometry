@@ -155,7 +155,7 @@ int main(void)
 	max7219_PrintDigit(DIGIT_2, LETTER_L, false);
 	max7219_PrintDigit(DIGIT_1, LETTER_P, false);
 	*/
-	//HAL_Delay(1500);
+	HAL_Delay(1500);
 
 	/*
 	max7219_Clean();

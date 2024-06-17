@@ -66,10 +66,10 @@ int temperatures[16]={0};
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_USART2_UART_Init(void);
+static void MX_I2C1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_SPI3_Init(void);
-static void MX_I2C1_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -110,10 +110,10 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USART2_UART_Init();
+  MX_I2C1_Init();
   MX_SPI2_Init();
   MX_SPI3_Init();
-  MX_I2C1_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart2, cadena, 1);
 
@@ -181,12 +181,12 @@ int main(void)
 
 	max31856_read_fault(&therm);
 	if (therm.sr.val) {
-		HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 1\n", strlen("Fault Probe 1\n"), 100);
+		//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 1\n", strlen("Fault Probe 1\n"), 100);
 	}
 
 	max31856_read_fault(&therm2);
 	if (therm2.sr.val) {
-		HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 2\n", strlen("Fault Probe 2\n"), 100);
+		//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 2\n", strlen("Fault Probe 2\n"), 100);
 	}
 
 	HAL_Delay(200);
@@ -195,14 +195,21 @@ int main(void)
 	float temp = max31856_read_TC_temp(&therm);
 	float temp2 = max31856_read_TC_temp(&therm2);
 
+	temperatures[0] = (int)(temp * 100);
+	if(temperatures[0] > 9999) temperatures[0] = 9999;
+	else if(temperatures[0] < 1000) temperatures[0] = 1000;
+	temperatures[1] = (int)(temp2 * 100);
+	if(temperatures[1] > 9999) temperatures[1] = 9999;
+	else if(temperatures[1] < 1000) temperatures[1] = 1000;
+
 	char buffer[12];
 	char buffer2[12];
 
 	sprintf(buffer, "%0.2f\n\r", temp);
 	sprintf(buffer2, "%0.2f\n\r", temp2);
 
-	HAL_UART_Transmit(&huart2, (uint8_t *)buffer, strlen(buffer), 100);
-	HAL_UART_Transmit(&huart2, (uint8_t *)buffer2, strlen(buffer2), 100);
+	//HAL_UART_Transmit(&huart2, (uint8_t *)buffer, strlen(buffer), 100);
+	//HAL_UART_Transmit(&huart2, (uint8_t *)buffer2, strlen(buffer2), 100);
 
 	HAL_Delay(200);
 
@@ -240,12 +247,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 16;
-  RCC_OscInitStruct.PLL.PLLN = 336;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
-  RCC_OscInitStruct.PLL.PLLQ = 7;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -255,12 +257,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
     Error_Handler();
   }
@@ -301,7 +303,7 @@ static void MX_I2C1_Init(void)
 }
 
 /**
-  * @brief SPI2 Initialization Function for connecting with LED screen
+  * @brief SPI2 Initialization Function
   * @param None
   * @retval None
   */
@@ -339,7 +341,7 @@ static void MX_SPI2_Init(void)
 }
 
 /**
-  * @brief SPI3 Initialization Function for connecting with MAX thermocouples system
+  * @brief SPI3 Initialization Function
   * @param None
   * @retval None
   */
@@ -377,7 +379,7 @@ static void MX_SPI3_Init(void)
 }
 
 /**
-  * @brief USART2 Initialization Function for connecting to SMART-1000
+  * @brief USART2 Initialization Function
   * @param None
   * @retval None
   */
@@ -460,8 +462,75 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+_Bool char_counter(char c) {
+  // Si el carácter recibido es diferente al último carácter almacenado
+  if (c != last_char) {
+    // Reiniciar el contador y actualizar el último carácter almacenado
+    same_char_count = 1;
+    last_char = c;
+  } else {
+    // Si es el mismo carácter, incrementar el contador
+    same_char_count++;
+  }
+
+  // Si se ha recibido el mismo carácter el número máximo de veces consecutivas
+  if (same_char_count >= MAX_COMND_COUNT) {
+    // Responder con un mensaje específico
+    //HAL_UART_Transmit(&huart2, (uint8_t *)"OK\n\r", strlen("OK\n\r"), 100);
+    // Reiniciar el contador y el último carácter almacenado
+    same_char_count = 0;
+    last_char = '\0';
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void N_name_and_status_handler(){
+  char respuesta_N[6]="111000"; // This is for LT-100. Comment for S-100
+  //char respuesta_N[6]="222000"; // This is for S-100. Comment for LT-100
+  char *s;
+  for ( s=respuesta_N; *s != '\0'; s++ ) {
+    HAL_UART_Transmit(&huart2,(uint8_t *)s , 1, 100);
+  }
+}
+
+void done(){
+  char respuesta_N[3]="DDD";
+  char *s;
+  for ( s=respuesta_N; *s != '\0'; s++ ) {
+    HAL_UART_Transmit(&huart2,(uint8_t *)s , 1, 100);
+  }
+}
+
+void T_temperature_handler_V2(){
+  //char temperatures_msg[70] = "EEE3500360037003800350036003700380035003600370038003500360037003800LH";
+  char temperature_str[70] = "EEE";
+  int i=0;
+  for(i=0;i<16;i++){
+    temperature_str[i*4 + 6]= '\0';
+    sprintf(temperature_str + (3 + 4*i), "%04d", temperatures[i] ? temperatures[i] : 3500);  // falta ver que hacer para que funcione cuando el numero tiene menos de 4 digitos.
+    //strncpy(&temperatures_msg[3 + i * 4],temperature_str,4);
+  }
+
+  unsigned checksum = 0;
+  for (int i = 3; i < 3 + 4 * 16; i++) {
+    checksum += temperature_str[i];
+  }
+  int onChar = 3+64;
+  temperature_str[onChar++] = checksum % 256;
+  temperature_str[onChar++] = checksum / 256;
+
+  char *s;
+  for ( s=temperature_str; *s != '\0'; s++ ) {
+    HAL_UART_Transmit(&huart2,(uint8_t *)s , 1, 100);
+  }
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+
   /* Prevent unused argument(s) compilation warning */
   if(huart->Instance == USART2)
   {
@@ -520,62 +589,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   }
 }
 
-_Bool char_counter(char c) {
-  // Si el carácter recibido es diferente al último carácter almacenado
-  if (c != last_char) {
-    // Reiniciar el contador y actualizar el último carácter almacenado
-    same_char_count = 1;
-    last_char = c;
-  } else {
-    // Si es el mismo carácter, incrementar el contador
-    same_char_count++;
-  }
-
-  // Si se ha recibido el mismo carácter el número máximo de veces consecutivas
-  if (same_char_count >= MAX_COMND_COUNT) {
-    // Responder con un mensaje específico
-    //HAL_UART_Transmit(&huart2, (uint8_t *)"OK\n\r", strlen("OK\n\r"), 100);
-    // Reiniciar el contador y el último carácter almacenado
-    same_char_count = 0;
-    last_char = '\0';
-    return true;
-  } else {
-    return false;
-  }
-}
-
-void N_name_and_status_handler(){
-  char respuesta_N[6]="111000"; // This is for LT-100. Comment for S-100
-  //char respuesta_N[6]="222000"; // This is for S-100. Comment for LT-100
-  char *s;
-  for ( s=respuesta_N; *s != '\0'; s++ ) {
-    HAL_UART_Transmit(&huart2,(uint8_t *)s , 1, 100);
-  }
-}
-
-void T_temperature_handler_V2(){
-  char temperatures_msg[70] = "EEE3500360037003800350036003700380035003600370038003500360037003800LH";
-
-  int i=0;
-  for(i=0;i<16;i++){
-    char temperature_str[5]={0};
-    sprintf(temperature_str, "%04d", temperatures[i]);  // falta ver que hacer para que funcione cuando el numero tiene menos de 4 digitos.
-    //strncpy(&temperatures_msg[3 + i * 4],temperature_str,4);
-  }
-
-  unsigned checksum = 0;
-  for (int i = 3; i < 3 + 4 * 16; i++) {
-    checksum += temperatures_msg[i];
-  }
-  int onChar = 3+64;
-  temperatures_msg[onChar++] = checksum % 256;
-  temperatures_msg[onChar++] = checksum / 256;
-
-  char *s;
-  for ( s=temperatures_msg; *s != '\0'; s++ ) {
-    HAL_UART_Transmit(&huart2,(uint8_t *)s , 1, 100);
-  }
-}
 /* USER CODE END 4 */
 
 /**

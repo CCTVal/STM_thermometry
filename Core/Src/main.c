@@ -77,7 +77,9 @@ static void MX_USART2_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 max31856_t therm = {&hspi2, {SPI_CS1_GPIO_Port, SPI_CS1_Pin}};
-max31856_t therm2 = {&hspi2, {SPI_CS4_GPIO_Port, SPI_CS4_Pin}};
+max31856_t therm4 = {&hspi2, {SPI_CS4_GPIO_Port, SPI_CS4_Pin}};
+max31856_t therm2 = {&hspi2, {SPI_CS2_GPIO_Port, SPI_CS2_Pin}};
+max31856_t therm3 = {&hspi2, {SPI_CS3_GPIO_Port, SPI_CS3_Pin}};
 
 /* USER CODE END 0 */
 
@@ -149,6 +151,22 @@ int main(void)
   max31856_set_open_circuit_fault_detection(&therm2, CR0_OC_DETECT_ENABLED_TC_LESS_2ms);
   max31856_set_conversion_mode(&therm2, CR0_CONV_CONTINUOUS);
 
+  max31856_init(&therm3);
+  max31856_set_noise_filter(&therm3, CR0_FILTER_OUT_50Hz);
+  max31856_set_cold_junction_enable(&therm3, CR0_CJ_ENABLED);
+  max31856_set_thermocouple_type(&therm3, CR1_TC_TYPE_K);
+  max31856_set_average_samples(&therm3, CR1_AVG_TC_SAMPLES_16);
+  max31856_set_open_circuit_fault_detection(&therm3, CR0_OC_DETECT_ENABLED_TC_LESS_2ms);
+  max31856_set_conversion_mode(&therm3, CR0_CONV_CONTINUOUS);
+
+  max31856_init(&therm4);
+  max31856_set_noise_filter(&therm4, CR0_FILTER_OUT_50Hz);
+  max31856_set_cold_junction_enable(&therm4, CR0_CJ_ENABLED);
+  max31856_set_thermocouple_type(&therm4, CR1_TC_TYPE_K);
+  max31856_set_average_samples(&therm4, CR1_AVG_TC_SAMPLES_16);
+  max31856_set_open_circuit_fault_detection(&therm4, CR0_OC_DETECT_ENABLED_TC_LESS_2ms);
+  max31856_set_conversion_mode(&therm4, CR0_CONV_CONTINUOUS);
+
   // Delay just for stability of configuration
   HAL_Delay(1500);
 
@@ -166,26 +184,8 @@ int main(void)
   max7219_PrintDigit(DIGIT_2, LETTER_L, false);
   max7219_PrintDigit(DIGIT_1, LETTER_P, false);
 
-  max7219_PrintDigit(16, LETTER_H, false);
-  max7219_PrintDigit(15, LETTER_E, false);
-  max7219_PrintDigit(14, LETTER_H, false);
-  max7219_PrintDigit(13, LETTER_E, false);
-
-  max7219_PrintDigit(12, LETTER_L, false);
-  max7219_PrintDigit(11, LETTER_P, false);
-  max7219_PrintDigit(10, LETTER_L, false);
-  max7219_PrintDigit(9, LETTER_P, false);
-
-  //max7219_PrintFtos(DIGIT_16, -4.25, 2);
-  //max7219_PrintFtos(DIGIT_12, -5.36, 2);
-
-  /*
-  max7219_PrintFtos(DIGIT_16, -3.14, 2);
-  max7219_PrintDigit(DIGIT_12, LETTER_H, false);
-  max7219_PrintDigit(DIGIT_11, LETTER_E, false);
-  max7219_PrintDigit(DIGIT_10, LETTER_L, false);
-  max7219_PrintDigit(DIGIT_9, LETTER_P, false);
-*/
+  max7219_PrintFtos(16, -4.25, 2);
+  max7219_PrintFtos(12, -5.36, 2);
 
   HAL_Delay(3000);
   max7219_Clean();
@@ -202,48 +202,88 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
+	float temp = max31856_read_TC_temp(&therm);
+    float temp2 = max31856_read_TC_temp(&therm2);
+    float temp3 = max31856_read_TC_temp(&therm3);
+    float temp4 = max31856_read_TC_temp(&therm4);
+
+  	temperatures[0] = (int)(temp * 100);
+  	if(temperatures[0] > 9999) temperatures[0] = 9999;
+  	else if(temperatures[0] < 1000) temperatures[0] = 1000;
+  	temperatures[1] = (int)(temp2 * 100);
+  	if(temperatures[1] > 9999) temperatures[1] = 9999;
+  	else if(temperatures[1] < 1000) temperatures[1] = 1000;
+  	temperatures[2] = (int)(temp2 * 100);
+  	if(temperatures[2] > 9999) temperatures[2] = 9999;
+  	else if(temperatures[2] < 1000) temperatures[2] = 1000;
+    temperatures[3] = (int)(temp2 * 100);
+  	if(temperatures[3] > 9999) temperatures[3] = 9999;
+  	else if(temperatures[3] < 1000) temperatures[3] = 1000;
+
+  	char buffer[12];
+  	char buffer2[12];
+  	char buffer3[12];
+  	char buffer4[12];
+
+  	sprintf(buffer, "%0.2f\n\r", temp);
+  	sprintf(buffer2, "%0.2f\n\r", temp2);
+  	sprintf(buffer3, "%0.2f\n\r", temp3);
+  	sprintf(buffer4, "%0.2f\n\r", temp4);
+
+  	//HAL_UART_Transmit(&huart2, (uint8_t *)buffer, strlen(buffer), 100);
+  	//HAL_UART_Transmit(&huart2, (uint8_t *)buffer2, strlen(buffer2), 100);
+  	HAL_Delay(200);
+
+  	float temp_2d = roundf(temp * 100) / 100;
+  	float temp2_2d = roundf(temp2 * 100) / 100;
+  	float temp3_2d = roundf(temp3 * 100) / 100;
+  	float temp4_2d = roundf(temp4 * 100) / 100;
+
+  	max7219_Clean();
+
 	max31856_read_fault(&therm);
 	if (therm.sr.val) {
 		//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 1\n", strlen("Fault Probe 1\n"), 100);
+		max7219_PrintDigit(8, LETTER_E, false);
+		max7219_PrintDigit(7, LETTER_E, false);
+		max7219_PrintDigit(6, LETTER_E, false);
+		max7219_PrintDigit(5, LETTER_E, false);
+	} else {
+		max7219_PrintFtos(8, temp_2d, 2);
 	}
 
 	max31856_read_fault(&therm2);
 	if (therm2.sr.val) {
 		//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 2\n", strlen("Fault Probe 2\n"), 100);
+		max7219_PrintDigit(4, LETTER_E, false);
+		max7219_PrintDigit(3, LETTER_E, false);
+		max7219_PrintDigit(2, LETTER_E, false);
+		max7219_PrintDigit(1, LETTER_E, false);
+	} else {
+		max7219_PrintFtos(4, temp2_2d, 2);
 	}
 
-	// Print Temperature to Serial Port
+	max31856_read_fault(&therm3);
+	if (therm3.sr.val) {
+		//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 2\n", strlen("Fault Probe 2\n"), 100);
+		max7219_PrintDigit(16, LETTER_E, false);
+		max7219_PrintDigit(15, LETTER_E, false);
+		max7219_PrintDigit(14, LETTER_E, false);
+		max7219_PrintDigit(13, LETTER_E, false);
+	} else {
+		max7219_PrintFtos(16, temp3_2d, 2);
+	}
 
-	float temp = max31856_read_TC_temp(&therm);
-	float temp2 = max31856_read_TC_temp(&therm2);
-
-	temperatures[0] = (int)(temp * 100);
-	if(temperatures[0] > 9999) temperatures[0] = 9999;
-	else if(temperatures[0] < 1000) temperatures[0] = 1000;
-	temperatures[1] = (int)(temp2 * 100);
-	if(temperatures[1] > 9999) temperatures[1] = 9999;
-	else if(temperatures[1] < 1000) temperatures[1] = 1000;
-
-	char buffer[12];
-	char buffer2[12];
-
-	sprintf(buffer, "%0.2f\n\r", temp);
-	sprintf(buffer2, "%0.2f\n\r", temp2);
-
-	//HAL_UART_Transmit(&huart2, (uint8_t *)buffer, strlen(buffer), 100);
-	//HAL_UART_Transmit(&huart2, (uint8_t *)buffer2, strlen(buffer2), 100);
-
-	HAL_Delay(200);
-
-	float temp_2d = roundf(temp * 100) / 100;
-	float temp2_2d = roundf(temp2 * 100) / 100;
-
-	max7219_Clean();
-	max7219_PrintFtos(8, temp_2d, 2);
-	max7219_PrintFtos(4, temp2_2d, 2);
-
-	max7219_PrintFtos(16, temp_2d + 11.11, 2);
-	max7219_PrintFtos(12, temp2_2d + 11.11, 2);
+	max31856_read_fault(&therm4);
+	if (therm4.sr.val) {
+		//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 2\n", strlen("Fault Probe 2\n"), 100);
+		max7219_PrintDigit(12, LETTER_E, false);
+		max7219_PrintDigit(11, LETTER_E, false);
+		max7219_PrintDigit(10, LETTER_E, false);
+		max7219_PrintDigit(9, LETTER_E, false);
+	} else {
+		max7219_PrintFtos(12, temp4_2d, 2);
+	}
 
 	HAL_Delay(1000);
   }

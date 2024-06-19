@@ -127,6 +127,8 @@ int main(void)
   HAL_GPIO_WritePin(SPI_CS3_GPIO_Port, SPI_CS3_Pin, 1);
   HAL_GPIO_WritePin(SPI_CS4_GPIO_Port, SPI_CS4_Pin, 1);
 
+  HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, 1);
+
   HAL_Delay(200);
 
 
@@ -156,24 +158,32 @@ int main(void)
 
   // Delay just for stability of configuration
   HAL_Delay(1500);
+
+  max7219_Clean();
+  max7219_PrintFtos(DIGIT_8, -3.14, 2);
+  max7219_PrintDigit(DIGIT_4, LETTER_H, false);
+  max7219_PrintDigit(DIGIT_3, LETTER_E, false);
+  max7219_PrintDigit(DIGIT_2, LETTER_L, false);
+  max7219_PrintDigit(DIGIT_1, LETTER_P, false);
+
+  /*
+  max7219_PrintFtos(DIGIT_16, -3.14, 2);
+  max7219_PrintDigit(DIGIT_12, LETTER_H, false);
+  max7219_PrintDigit(DIGIT_11, LETTER_E, false);
+  max7219_PrintDigit(DIGIT_10, LETTER_L, false);
+  max7219_PrintDigit(DIGIT_9, LETTER_P, false);
+*/
+
+  HAL_Delay(3000);
+  max7219_Clean();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	/*
-	max7219_PrintDigit(DIGIT_4, LETTER_H, false);
-	max7219_PrintDigit(DIGIT_3, LETTER_E, false);
-	max7219_PrintDigit(DIGIT_2, LETTER_L, false);
-	max7219_PrintDigit(DIGIT_1, LETTER_P, false);
-	*/
-	//HAL_Delay(1500);
 
-	max7219_Clean();
-	max7219_PrintNtos(DIGIT_8, 765, 4);
-	max7219_PrintItos(DIGIT_3, 321);
-	HAL_Delay(1500);
+
 
     /* USER CODE END WHILE */
 
@@ -189,7 +199,6 @@ int main(void)
 		//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 2\n", strlen("Fault Probe 2\n"), 100);
 	}
 
-	HAL_Delay(200);
 	// Print Temperature to Serial Port
 
 	float temp = max31856_read_TC_temp(&therm);
@@ -220,9 +229,7 @@ int main(void)
 	max7219_PrintFtos(DIGIT_8, temp_2d, 2);
 	max7219_PrintFtos(DIGIT_4, temp2_2d, 2);
 
-
 	HAL_Delay(1000);
-
   }
   /* USER CODE END 3 */
 }
@@ -363,7 +370,7 @@ static void MX_SPI3_Init(void)
   hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi3.Init.NSS = SPI_NSS_SOFT;
-  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
+  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
   hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;

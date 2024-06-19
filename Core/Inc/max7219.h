@@ -11,7 +11,7 @@
 #include "main.h"
 #include "stdbool.h"
 
-#define NUMBER_OF_DIGITS	8
+#define NUMBER_OF_DIGITS	16
 #define SPI_PORT			hspi3
 
 extern SPI_HandleTypeDef 	SPI_PORT;
@@ -35,7 +35,10 @@ typedef enum {
 
 typedef enum {
 	DIGIT_1 = 1, DIGIT_2 = 2, DIGIT_3 = 3, DIGIT_4 = 4,
-	DIGIT_5 = 5, DIGIT_6 = 6, DIGIT_7 = 7, DIGIT_8 = 8
+	DIGIT_5 = 5, DIGIT_6 = 6, DIGIT_7 = 7, DIGIT_8 = 8,
+	DIGIT_9 = 9, DIGIT_10 = 10, DIGIT_11 = 11, DIGIT_12 = 12,
+	DIGIT_13 = 13, DIGIT_14 = 14, DIGIT_15 = 15, DIGIT_16 = 16,
+
 } MAX7219_Digits;
 
 typedef enum {

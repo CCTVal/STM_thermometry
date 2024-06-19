@@ -38,6 +38,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define MAX_COMND_COUNT 3 // Numero maximo de veces consecutivas para el mismo caracter
+#define THERMOCOUPLES 4
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -54,7 +55,7 @@ SPI_HandleTypeDef hspi3;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-uint8_t cadena[1]="0";
+uint8_t cadena[1] = "0";
 
 char last_char = '\0'; // To record last character received
 int same_char_count = 0; // Counter for the consecutive times that a specific character has been received
@@ -76,11 +77,11 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-max31856_t therm = {&hspi2, {SPI_CS1_GPIO_Port, SPI_CS1_Pin}};
-max31856_t therm4 = {&hspi2, {SPI_CS4_GPIO_Port, SPI_CS4_Pin}};
-max31856_t therm2 = {&hspi2, {SPI_CS2_GPIO_Port, SPI_CS2_Pin}};
-max31856_t therm3 = {&hspi2, {SPI_CS3_GPIO_Port, SPI_CS3_Pin}};
-
+max31856_t therms[4] = {{&hspi2, {SPI_CS1_GPIO_Port, SPI_CS1_Pin}},
+		                {&hspi2, {SPI_CS2_GPIO_Port, SPI_CS2_Pin}},
+						{&hspi2, {SPI_CS3_GPIO_Port, SPI_CS3_Pin}},
+						{&hspi2, {SPI_CS4_GPIO_Port, SPI_CS4_Pin}}
+};
 /* USER CODE END 0 */
 
 /**
@@ -135,37 +136,15 @@ int main(void)
 
 
   // Configure Thermocouples Variables
-  max31856_init(&therm);
-  max31856_set_noise_filter(&therm, CR0_FILTER_OUT_50Hz);
-  max31856_set_cold_junction_enable(&therm, CR0_CJ_ENABLED);
-  max31856_set_thermocouple_type(&therm, CR1_TC_TYPE_K);
-  max31856_set_average_samples(&therm, CR1_AVG_TC_SAMPLES_16);
-  max31856_set_open_circuit_fault_detection(&therm, CR0_OC_DETECT_ENABLED_TC_LESS_2ms);
-  max31856_set_conversion_mode(&therm, CR0_CONV_CONTINUOUS);
-
-  max31856_init(&therm2);
-  max31856_set_noise_filter(&therm2, CR0_FILTER_OUT_50Hz);
-  max31856_set_cold_junction_enable(&therm2, CR0_CJ_ENABLED);
-  max31856_set_thermocouple_type(&therm2, CR1_TC_TYPE_K);
-  max31856_set_average_samples(&therm2, CR1_AVG_TC_SAMPLES_16);
-  max31856_set_open_circuit_fault_detection(&therm2, CR0_OC_DETECT_ENABLED_TC_LESS_2ms);
-  max31856_set_conversion_mode(&therm2, CR0_CONV_CONTINUOUS);
-
-  max31856_init(&therm3);
-  max31856_set_noise_filter(&therm3, CR0_FILTER_OUT_50Hz);
-  max31856_set_cold_junction_enable(&therm3, CR0_CJ_ENABLED);
-  max31856_set_thermocouple_type(&therm3, CR1_TC_TYPE_K);
-  max31856_set_average_samples(&therm3, CR1_AVG_TC_SAMPLES_16);
-  max31856_set_open_circuit_fault_detection(&therm3, CR0_OC_DETECT_ENABLED_TC_LESS_2ms);
-  max31856_set_conversion_mode(&therm3, CR0_CONV_CONTINUOUS);
-
-  max31856_init(&therm4);
-  max31856_set_noise_filter(&therm4, CR0_FILTER_OUT_50Hz);
-  max31856_set_cold_junction_enable(&therm4, CR0_CJ_ENABLED);
-  max31856_set_thermocouple_type(&therm4, CR1_TC_TYPE_K);
-  max31856_set_average_samples(&therm4, CR1_AVG_TC_SAMPLES_16);
-  max31856_set_open_circuit_fault_detection(&therm4, CR0_OC_DETECT_ENABLED_TC_LESS_2ms);
-  max31856_set_conversion_mode(&therm4, CR0_CONV_CONTINUOUS);
+  for(int i = 0; i < THERMOCOUPLES; i++) {
+    max31856_init(therms + i);
+	max31856_set_noise_filter(therms + i, CR0_FILTER_OUT_50Hz);
+	max31856_set_cold_junction_enable(therms + i, CR0_CJ_ENABLED);
+	max31856_set_thermocouple_type(therms + i, CR1_TC_TYPE_K);
+	max31856_set_average_samples(therms + i, CR1_AVG_TC_SAMPLES_16);
+	max31856_set_open_circuit_fault_detection(therms + i, CR0_OC_DETECT_ENABLED_TC_LESS_2ms);
+	max31856_set_conversion_mode(therms + i, CR0_CONV_CONTINUOUS);
+  }
 
   // Delay just for stability of configuration
   HAL_Delay(1500);
@@ -202,88 +181,34 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	float temp = max31856_read_TC_temp(&therm);
-    float temp2 = max31856_read_TC_temp(&therm2);
-    float temp3 = max31856_read_TC_temp(&therm3);
-    float temp4 = max31856_read_TC_temp(&therm4);
+	float temps[16] = {0};
+	char buffers[4][12];
+	float temps_2d[THERMOCOUPLES];
+	for(int i = 0; i < THERMOCOUPLES; i++) {
+		temps[i] = max31856_read_TC_temp(therms + i);
+		temperatures[i] = (int)(temps[i] * 100);
+	  	if(temperatures[i] > 9999) temperatures[i] = 9999;
+	  	else if(temperatures[i] < 1000) temperatures[i] = 1000;
 
-  	temperatures[0] = (int)(temp * 100);
-  	if(temperatures[0] > 9999) temperatures[0] = 9999;
-  	else if(temperatures[0] < 1000) temperatures[0] = 1000;
-  	temperatures[1] = (int)(temp2 * 100);
-  	if(temperatures[1] > 9999) temperatures[1] = 9999;
-  	else if(temperatures[1] < 1000) temperatures[1] = 1000;
-  	temperatures[2] = (int)(temp2 * 100);
-  	if(temperatures[2] > 9999) temperatures[2] = 9999;
-  	else if(temperatures[2] < 1000) temperatures[2] = 1000;
-    temperatures[3] = (int)(temp2 * 100);
-  	if(temperatures[3] > 9999) temperatures[3] = 9999;
-  	else if(temperatures[3] < 1000) temperatures[3] = 1000;
+	  	sprintf(buffers[i], "%0.2f\n\r", temps[i]);
+	  	temps_2d[i] = roundf(temps[i] * 100) / 100;
+	}
 
-  	char buffer[12];
-  	char buffer2[12];
-  	char buffer3[12];
-  	char buffer4[12];
-
-  	sprintf(buffer, "%0.2f\n\r", temp);
-  	sprintf(buffer2, "%0.2f\n\r", temp2);
-  	sprintf(buffer3, "%0.2f\n\r", temp3);
-  	sprintf(buffer4, "%0.2f\n\r", temp4);
-
-  	//HAL_UART_Transmit(&huart2, (uint8_t *)buffer, strlen(buffer), 100);
-  	//HAL_UART_Transmit(&huart2, (uint8_t *)buffer2, strlen(buffer2), 100);
   	HAL_Delay(200);
 
-  	float temp_2d = roundf(temp * 100) / 100;
-  	float temp2_2d = roundf(temp2 * 100) / 100;
-  	float temp3_2d = roundf(temp3 * 100) / 100;
-  	float temp4_2d = roundf(temp4 * 100) / 100;
-
   	max7219_Clean();
-
-	max31856_read_fault(&therm);
-	if (therm.sr.val) {
-		//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 1\n", strlen("Fault Probe 1\n"), 100);
-		max7219_PrintDigit(8, LETTER_E, false);
-		max7219_PrintDigit(7, LETTER_E, false);
-		max7219_PrintDigit(6, LETTER_E, false);
-		max7219_PrintDigit(5, LETTER_E, false);
-	} else {
-		max7219_PrintFtos(8, temp_2d, 2);
-	}
-
-	max31856_read_fault(&therm2);
-	if (therm2.sr.val) {
-		//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 2\n", strlen("Fault Probe 2\n"), 100);
-		max7219_PrintDigit(4, LETTER_E, false);
-		max7219_PrintDigit(3, LETTER_E, false);
-		max7219_PrintDigit(2, LETTER_E, false);
-		max7219_PrintDigit(1, LETTER_E, false);
-	} else {
-		max7219_PrintFtos(4, temp2_2d, 2);
-	}
-
-	max31856_read_fault(&therm3);
-	if (therm3.sr.val) {
-		//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 2\n", strlen("Fault Probe 2\n"), 100);
-		max7219_PrintDigit(16, LETTER_E, false);
-		max7219_PrintDigit(15, LETTER_E, false);
-		max7219_PrintDigit(14, LETTER_E, false);
-		max7219_PrintDigit(13, LETTER_E, false);
-	} else {
-		max7219_PrintFtos(16, temp3_2d, 2);
-	}
-
-	max31856_read_fault(&therm4);
-	if (therm4.sr.val) {
-		//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 2\n", strlen("Fault Probe 2\n"), 100);
-		max7219_PrintDigit(12, LETTER_E, false);
-		max7219_PrintDigit(11, LETTER_E, false);
-		max7219_PrintDigit(10, LETTER_E, false);
-		max7219_PrintDigit(9, LETTER_E, false);
-	} else {
-		max7219_PrintFtos(12, temp4_2d, 2);
-	}
+  	for(int i = 0; i < THERMOCOUPLES; i++) {
+  		max31856_read_fault(therms + i);
+  		if (therms[i].sr.val) {
+  			//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 1\n", strlen("Fault Probe 1\n"), 100);
+  			max7219_PrintDigit(i * 4 + 4, LETTER_E, false);
+  			max7219_PrintDigit(i * 4 + 3, LETTER_E, false);
+  			max7219_PrintDigit(i * 4 + 2, LETTER_E, false);
+  			max7219_PrintDigit(i * 4 + 1, LETTER_E, false);
+  		} else {
+  			max7219_PrintFtos(i * 4 + 4, temps_2d[i], 2);
+  		}
+  	}
 
 	HAL_Delay(1000);
   }

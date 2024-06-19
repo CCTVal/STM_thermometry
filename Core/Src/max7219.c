@@ -37,7 +37,10 @@ static uint32_t lcdPow10(uint8_t n);
 void max7219_Init(uint8_t intensivity)
 {
 	max7219_Turn_On();
-	max7219_SendData(REG_SCAN_LIMIT, NUMBER_OF_DIGITS - 1);
+	for (int chip = 1; chip <= NUMBER_OF_CHIPS; chip++)
+	{
+		max7219_SendData(REG_SCAN_LIMIT, NUMBER_OF_DIGITS - 1, chip);
+	}
 	max7219_SetIntensivity(intensivity);
 	max7219_Clean();
 }
@@ -48,8 +51,10 @@ void max7219_SetIntensivity(uint8_t intensivity)
 	{
 		return;
 	}
-
-	max7219_SendData(REG_INTENSITY, intensivity);
+	for (int chip = 1; chip <= NUMBER_OF_CHIPS; chip++)
+	{
+		max7219_SendData(REG_INTENSITY, intensivity, chip);
+	}
 }
 
 void max7219_Clean()
@@ -61,76 +66,105 @@ void max7219_Clean()
 		clear = BLANK;
 	}
 
-	for (int i = 0; i < 8; ++i)
+	for (int chip = 1; chip <= NUMBER_OF_CHIPS; chip++)
 	{
-		max7219_SendData(i + 1, clear);
+		for (int i = 0; i < 8; ++i)
+		{
+			max7219_SendData(i + 1, clear, chip);
+		}
 	}
 }
 
-void max7219_SendData(uint8_t addr, uint8_t data)
+void max7219_SendData(uint8_t addr, uint8_t data, uint8_t chip)
 {
 	CS_SET();
+	uint8_t no_op_address = REG_NO_OP;
+	for(int i = 0; i < NUMBER_OF_CHIPS - chip; i++) {
+		HAL_SPI_Transmit(&hspi3, &no_op_address, 1, HAL_MAX_DELAY);
+		HAL_SPI_Transmit(&hspi3, &no_op_address, 1, HAL_MAX_DELAY);
+	}
 	HAL_SPI_Transmit(&hspi3, &addr, 1, HAL_MAX_DELAY);
 	HAL_SPI_Transmit(&hspi3, &data, 1, HAL_MAX_DELAY);
+	for(int i = 1; i < chip; i++) {
+		HAL_SPI_Transmit(&hspi3, &no_op_address, 1, HAL_MAX_DELAY);
+		HAL_SPI_Transmit(&hspi3, &no_op_address, 1, HAL_MAX_DELAY);
+	}
 	CS_RESET();
 }
 
 void max7219_Turn_On(void)
 {
-	max7219_SendData(REG_SHUTDOWN, 0x01);
+	for (int chip = 1; chip <= NUMBER_OF_CHIPS; chip++)
+	{
+		max7219_SendData(REG_SHUTDOWN, 0x01, chip);
+	}
 }
 
 void max7219_Turn_Off(void)
 {
-	max7219_SendData(REG_SHUTDOWN, 0x00);
+	for (int chip = 1; chip <= NUMBER_OF_CHIPS; chip++)
+	{
+		max7219_SendData(REG_SHUTDOWN, 0x00, chip);
+	}
 }
 
 void max7219_Decode_On(void)
 {
 	decodeMode = 0xFF;
-	max7219_SendData(REG_DECODE_MODE, decodeMode);
+	for (int chip = 1; chip <= NUMBER_OF_CHIPS; chip++)
+	{
+		max7219_SendData(REG_DECODE_MODE, decodeMode, chip);
+	}
 }
 
 void max7219_Decode_Off(void)
 {
 	decodeMode = 0x00;
-	max7219_SendData(REG_DECODE_MODE, decodeMode);
+	for (int chip = 1; chip <= NUMBER_OF_CHIPS; chip++)
+	{
+		max7219_SendData(REG_DECODE_MODE, decodeMode, chip);
+	}
 }
 
 void max7219_PrintDigit(MAX7219_Digits position, MAX7219_Numeric numeric, bool point)
 {
-	if(position > NUMBER_OF_DIGITS)
+	if(position > NUMBER_OF_DIGITS * NUMBER_OF_CHIPS)
 	{
 		return;
 	}
+
+	int chip = (position - 1) / NUMBER_OF_DIGITS + 1;
+	position = (position - 1) % NUMBER_OF_DIGITS + 1;
 
 	if(point)
 	{
 		if(decodeMode == 0x00)
 		{
-			max7219_SendData(position, getSymbol(numeric) | (1 << 7));
+			max7219_SendData(position, getSymbol(numeric) | (1 << 7), chip);
 		}
 		else if(decodeMode == 0xFF)
 		{
-			max7219_SendData(position, numeric | (1 << 7));
+			max7219_SendData(position, numeric | (1 << 7), chip);
 		}
 	}
 	else
 	{
 		if(decodeMode == 0x00)
 		{
-			max7219_SendData(position, getSymbol(numeric) & (~(1 << 7)));
+			max7219_SendData(position, getSymbol(numeric) & (~(1 << 7)), chip);
 		}
 		else if(decodeMode == 0xFF)
 		{
-			max7219_SendData(position, numeric & (~(1 << 7)));
+			max7219_SendData(position, numeric & (~(1 << 7)), chip);
 		}
 	}
 }
 
 MAX7219_Digits max7219_PrintItos(MAX7219_Digits position, int value)
 {
-	max7219_SendData(REG_DECODE_MODE, 0xFF);
+	int chip = (position - 1) / NUMBER_OF_DIGITS + 1;
+	position = (position - 1) % NUMBER_OF_DIGITS + 1;
+	max7219_SendData(REG_DECODE_MODE, 0xFF, chip);
 
 	int32_t i;
 
@@ -138,7 +172,7 @@ MAX7219_Digits max7219_PrintItos(MAX7219_Digits position, int value)
 	{
 		if(position > 0)
 		{
-			max7219_SendData(position, MINUS);
+			max7219_SendData(position, MINUS, chip);
 			position--;
 		}
 		value = -value;
@@ -153,7 +187,7 @@ MAX7219_Digits max7219_PrintItos(MAX7219_Digits position, int value)
 
 	if(position > 0)
 	{
-		max7219_SendData(position, value/i);
+		max7219_SendData(position, value/i, chip);
 		position--;
 	}
 
@@ -163,21 +197,23 @@ MAX7219_Digits max7219_PrintItos(MAX7219_Digits position, int value)
 	{
 		if(position > 0)
 		{
-			max7219_SendData(position, (value % (i * 10)) / i);
+			max7219_SendData(position, (value % (i * 10)) / i, chip);
 			position--;
 		}
 
 		i /= 10;
 	}
 
-	max7219_SendData(REG_DECODE_MODE, decodeMode);
+	max7219_SendData(REG_DECODE_MODE, decodeMode, chip);
 
 	return position;
 }
 
 MAX7219_Digits max7219_PrintNtos(MAX7219_Digits position, uint32_t value, uint8_t n)
 {
-	max7219_SendData(REG_DECODE_MODE, 0xFF);
+	int chip = (position - 1) / NUMBER_OF_DIGITS + 1;
+	position = (position - 1) % NUMBER_OF_DIGITS + 1;
+	max7219_SendData(REG_DECODE_MODE, 0xFF, chip);
 
 	if (n > 0u)
 	{
@@ -187,7 +223,7 @@ MAX7219_Digits max7219_PrintNtos(MAX7219_Digits position, uint32_t value, uint8_
 		{
 			if(position > 0u)
 			{
-				max7219_SendData(position, (value / i) % 10u);
+				max7219_SendData(position, (value / i) % 10u, chip);
 				position--;
 			}
 
@@ -195,7 +231,7 @@ MAX7219_Digits max7219_PrintNtos(MAX7219_Digits position, uint32_t value, uint8_
 		}
 	}
 
-	max7219_SendData(REG_DECODE_MODE, decodeMode);
+	max7219_SendData(REG_DECODE_MODE, decodeMode, chip);
 
 	return position;
 }
@@ -207,29 +243,31 @@ MAX7219_Digits max7219_PrintFtos(MAX7219_Digits position, float value, uint8_t n
 		n = 4;
 	}
 
-	max7219_SendData(REG_DECODE_MODE, 0xFF);
+	int chip = (position - 1) / NUMBER_OF_DIGITS + 1;
+	position = (position - 1) % NUMBER_OF_DIGITS + 1;
+	max7219_SendData(REG_DECODE_MODE, 0xFF, chip);
 
 	if (value < 0.0)
 	{
 		if(position > 0)
 		{
-			max7219_SendData(position, MINUS);
+			max7219_SendData(position, MINUS, chip);
 			position--;
 		}
 
 		value = -value;
 	}
 
-	position = max7219_PrintItos(position, (int32_t) value);
+	position = max7219_PrintItos(position + ((chip - 1) * NUMBER_OF_DIGITS), (int32_t) value);
 
 	if (n > 0u)
 	{
-		max7219_PrintDigit(position + 1, ((int32_t) value) % 10, true);
+		max7219_PrintDigit(position + 1 + ((chip - 1) * NUMBER_OF_DIGITS), ((int32_t) value) % 10, true);
 
-		position = max7219_PrintNtos(position, (uint32_t) (value * (float) lcdPow10(n)), n);
+		position = max7219_PrintNtos(position + ((chip - 1) * NUMBER_OF_DIGITS), (uint32_t) (value * (float) lcdPow10(n)), n);
 	}
 
-	max7219_SendData(REG_DECODE_MODE, decodeMode);
+	max7219_SendData(REG_DECODE_MODE, decodeMode, chip);
 
 	return position;
 }

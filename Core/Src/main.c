@@ -166,6 +166,19 @@ int main(void)
   max7219_PrintDigit(DIGIT_2, LETTER_L, false);
   max7219_PrintDigit(DIGIT_1, LETTER_P, false);
 
+  max7219_PrintDigit(16, LETTER_H, false);
+  max7219_PrintDigit(15, LETTER_E, false);
+  max7219_PrintDigit(14, LETTER_H, false);
+  max7219_PrintDigit(13, LETTER_E, false);
+
+  max7219_PrintDigit(12, LETTER_L, false);
+  max7219_PrintDigit(11, LETTER_P, false);
+  max7219_PrintDigit(10, LETTER_L, false);
+  max7219_PrintDigit(9, LETTER_P, false);
+
+  //max7219_PrintFtos(DIGIT_16, -4.25, 2);
+  //max7219_PrintFtos(DIGIT_12, -5.36, 2);
+
   /*
   max7219_PrintFtos(DIGIT_16, -3.14, 2);
   max7219_PrintDigit(DIGIT_12, LETTER_H, false);
@@ -226,8 +239,11 @@ int main(void)
 	float temp2_2d = roundf(temp2 * 100) / 100;
 
 	max7219_Clean();
-	max7219_PrintFtos(DIGIT_8, temp_2d, 2);
-	max7219_PrintFtos(DIGIT_4, temp2_2d, 2);
+	max7219_PrintFtos(8, temp_2d, 2);
+	max7219_PrintFtos(4, temp2_2d, 2);
+
+	max7219_PrintFtos(16, temp_2d + 11.11, 2);
+	max7219_PrintFtos(12, temp2_2d + 11.11, 2);
 
 	HAL_Delay(1000);
   }

@@ -57,8 +57,26 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define keypadColumn1_Pin GPIO_PIN_5
+#define keypadColumn1_GPIO_Port GPIOC
+#define keypadRow4_Pin GPIO_PIN_1
+#define keypadRow4_GPIO_Port GPIOB
+#define keypadRow4_EXTI_IRQn EXTI1_IRQn
+#define keypadRow1_Pin GPIO_PIN_13
+#define keypadRow1_GPIO_Port GPIOB
+#define keypadRow1_EXTI_IRQn EXTI15_10_IRQn
+#define keypadRow2_Pin GPIO_PIN_14
+#define keypadRow2_GPIO_Port GPIOB
+#define keypadRow2_EXTI_IRQn EXTI15_10_IRQn
+#define keypadRow3_Pin GPIO_PIN_15
+#define keypadRow3_GPIO_Port GPIOB
+#define keypadRow3_EXTI_IRQn EXTI15_10_IRQn
+#define keypadColumn2_Pin GPIO_PIN_6
+#define keypadColumn2_GPIO_Port GPIOC
 #define SPI_CS2_Pin GPIO_PIN_7
 #define SPI_CS2_GPIO_Port GPIOC
+#define keypadColumn3_Pin GPIO_PIN_8
+#define keypadColumn3_GPIO_Port GPIOC
 #define SPI_CS4_Pin GPIO_PIN_8
 #define SPI_CS4_GPIO_Port GPIOA
 #define SPI_CS3_Pin GPIO_PIN_9

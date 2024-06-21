@@ -28,6 +28,7 @@
 #include "max31856.h"
 #include "max7219.h"
 #include <math.h>
+#include "keypad.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -149,6 +150,9 @@ int main(void)
   // Delay just for stability of configuration
   HAL_Delay(1500);
 
+  // Init keypad
+  keypad_Init();
+
   // Init Led Display
   max7219_Init(7);
   max7219_Decode_On();
@@ -163,7 +167,7 @@ int main(void)
   max7219_PrintDigit(DIGIT_2, LETTER_L, false);
   max7219_PrintDigit(DIGIT_1, LETTER_P, false);
 
-  max7219_PrintFtos(16, -4.25, 2);
+  max7219_PrintFtos(16, 53.84, 2);
   max7219_PrintFtos(12, -5.36, 2);
 
   HAL_Delay(3000);
@@ -196,7 +200,7 @@ int main(void)
 
   	HAL_Delay(200);
 
-  	max7219_Clean();
+  	//max7219_Clean();
   	for(int i = 0; i < THERMOCOUPLES; i++) {
   		max31856_read_fault(therms + i);
   		if (therms[i].sr.val) {
@@ -416,7 +420,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(SPI_CS2_GPIO_Port, SPI_CS2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, keypadColumn1_Pin|keypadColumn2_Pin|SPI_CS2_Pin|keypadColumn3_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, SPI_CS4_Pin|SPI_CS3_Pin, GPIO_PIN_RESET);
@@ -424,12 +428,18 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, SPI3_CS_Pin|SPI_CS1_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : SPI_CS2_Pin */
-  GPIO_InitStruct.Pin = SPI_CS2_Pin;
+  /*Configure GPIO pins : keypadColumn1_Pin keypadColumn2_Pin SPI_CS2_Pin keypadColumn3_Pin */
+  GPIO_InitStruct.Pin = keypadColumn1_Pin|keypadColumn2_Pin|SPI_CS2_Pin|keypadColumn3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SPI_CS2_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : keypadRow4_Pin keypadRow1_Pin keypadRow2_Pin keypadRow3_Pin */
+  GPIO_InitStruct.Pin = keypadRow4_Pin|keypadRow1_Pin|keypadRow2_Pin|keypadRow3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : SPI_CS4_Pin SPI_CS3_Pin */
   GPIO_InitStruct.Pin = SPI_CS4_Pin|SPI_CS3_Pin;
@@ -444,6 +454,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -574,6 +591,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
       done();
     }
     HAL_UART_Receive_IT(&huart2, cadena, 1);
+  }
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  int key = getKeyAsInt(GPIO_Pin);
+  if(key != KEYPAD_ERROR_KEY) {
+    max7219_PrintDigit(9, key, false);
   }
 }
 

@@ -25,10 +25,12 @@
 #include "stdio.h"
 #include "stdbool.h"
 #include "stdlib.h"
+#include "stm32f4xx_hal_flash.h"
 #include "max31856.h"
 #include "max7219.h"
 #include <math.h>
 #include "keypad.h"
+#include "ee.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -172,6 +174,7 @@ int main(void)
 
   HAL_Delay(3000);
   max7219_Clean();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -596,10 +599,60 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  int key = getKeyAsInt(GPIO_Pin);
-  if(key != KEYPAD_ERROR_KEY) {
-    max7219_PrintDigit(9, key, false);
+  uint16_t key = getKeyAsInt(GPIO_Pin);
+  if(key == KEYPAD_ERROR_KEY) {
+    return;
   }
+  uint32_t address = 0x100;
+  uint8_t data1[0xC00];
+  uint8_t data2[0xC00];
+  max7219_PrintDigit(8, key, false);
+  data1[4] = 4;
+  data1[5] = 5;
+  data1[6] = 6;
+  data1[7] = 7;
+
+  // Init flash memory
+  if(ee_init()) {
+  } else { // error
+	  max7219_PrintDigit(8, 5, false);
+	  return;
+  }
+  if(ee_format(1)) {
+	  max7219_PrintDigit(7, 4, false);
+  } else { // error
+	  max7219_PrintDigit(7, 5, false);
+	  return;
+  }
+
+  if(!ee_write(address + 0x0, 1, data1 + 4))return;
+  if(!ee_write(address + 0x4, 1, data1 + 5))return;
+  if(!ee_write(address + 0x8, 1, data1 + 6))return;
+  if(!ee_write(address + 0xC, 1, data1 + 7))return;
+  if(ee_write(address+0x10, 1, data1 + 3)) {
+  	  max7219_PrintDigit(6, 4, false);
+    } else { // error
+  	  max7219_PrintDigit(6, 5, false);
+  	  return;
+    }
+  if(ee_read(address + 0x0, 1, data2 + 0x04)) {
+  } else {
+   return;
+  } if(ee_read(address + 0x4, 1, data2 + 0x08)) {
+  } else {
+   return;
+  } if(ee_read(address + 0x8, 1, data2 + 0x0C)) {
+  } else {
+   return;
+  } if(ee_read(address + 0xC, 1, data2 + 0x10)) {
+	max7219_PrintItos(12, data2[0x04]);
+	max7219_PrintItos(11, data2[0x08]);
+	max7219_PrintItos(10, data2[0x0C]);
+	max7219_PrintItos(9,  data2[0x10]);
+  } else {
+   return;
+  }
+
 }
 
 /* USER CODE END 4 */

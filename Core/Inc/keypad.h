@@ -10,10 +10,10 @@
 
 #include "main.h"
 
-#define KEYPAD_ERROR_KEY	10
+#define KEYPAD_ERROR_KEY	0x000A
 
 void keypad_Init();
-int getKeyAsInt(uint16_t GPIO_Pin);
+uint16_t getKeyAsInt(uint16_t GPIO_Pin);
 char getKeyAsChar(uint16_t GPIO_Pin);
 
 #endif /* KEYPAD_H_ */

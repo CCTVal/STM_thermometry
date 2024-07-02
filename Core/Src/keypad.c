@@ -15,12 +15,12 @@ void keypad_Init(){
   HAL_GPIO_WritePin(keypadColumn3_GPIO_Port, keypadColumn3_Pin, GPIO_PIN_SET);
 }
 
-int getKeyAsInt(uint16_t GPIO_Pin) {
-	  int row, column;
-	  int button;
-	  uint32_t currentMillis;
-	  GPIO_TypeDef* port;
-	  switch(GPIO_Pin) {
+uint16_t getKeyAsInt(uint16_t GPIO_Pin) {
+  uint16_t row, column;
+  uint16_t button;
+  uint32_t currentMillis;
+  GPIO_TypeDef* port;
+  switch(GPIO_Pin) {
 	  case keypadRow1_Pin:
 		row = 0;
 		port = keypadRow1_GPIO_Port;

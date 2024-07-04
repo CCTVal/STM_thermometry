@@ -139,10 +139,9 @@ int main(void)
   for(int i = 0; i < THERMOCOUPLES; i++) {
 	while(!LTC2986_is_ready(&therms));
 	LTC2986_global_configure(&therms);
-	LTC2986_configure_rtd(&therms, LTC2986_RTD_PT_100, 4);
-	LTC2986_configure_thermocouple(&therms, LTC2986_TYPE_T_THERMOCOUPLE, 5, 4);
-	LTC2986_configure_thermocouple(&therms, LTC2986_TYPE_T_THERMOCOUPLE, 6, 4);
-	LTC2986_configure_thermocouple(&therms, LTC2986_TYPE_T_THERMOCOUPLE, 7, 4);
+	LTC2986_configure_rtd(&therms, LTC2986_RTD_PT_100, 7, 5);
+	LTC2986_configure_sense_resistor(&therms, 5, 100);
+	LTC2986_configure_thermocouple(&therms, LTC2986_TYPE_T_THERMOCOUPLE, 2, 7);
   }
 
   // Delay just for stability of configuration

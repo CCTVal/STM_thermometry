@@ -47,7 +47,8 @@ typedef enum {
 	LTC2986_CUSTOM_TYPE_THERMOCOUPLE = 0x09,
 	LTC2986_RTD_PT_10 = 0x0A,
 	LTC2986_RTD_PT_50 = 0x0B,
-	LTC2986_RTD_PT_100 = 0x0C
+	LTC2986_RTD_PT_100 = 0x0C,
+	LTC2986_SENSE_RESISTOR = 0x1D
 } LTC2986_sensor_t;
 
 typedef struct {
@@ -70,7 +71,8 @@ typedef enum {
 */
 
 void LTC2986_global_configure(LTC2986_t *LTM);
-void LTC2986_configure_rtd(LTC2986_t *LTM, LTC2986_sensor_t type, uint8_t channel_number);
+void LTC2986_configure_rtd(LTC2986_t *LTM, LTC2986_sensor_t type, uint8_t channel_number, uint8_t sense_channel);
+void LTC2986_configure_sense_resistor(LTC2986_t *LTM, uint8_t channel_number, float resistance);
 void LTC2986_configure_thermocouple(LTC2986_t *LTM, LTC2986_sensor_t type, uint8_t channel_number, uint8_t cold_juntion_channel);
 float LTC2986_measure_channel(LTC2986_t *LTM, uint8_t channel_number);
 uint8_t LTC2986_is_ready(LTC2986_t *LTM);

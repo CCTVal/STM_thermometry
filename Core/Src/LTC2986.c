@@ -54,14 +54,14 @@ void LTC2986_global_configure(LTC2986_t *LTM) {
 }
 
 // Esta configuracion siento que tiene demasiados parametros asi que por ahora la voy a dejar hardcodeada, pero si queremos hacer una biblioteca portable y general, se deberian dejar como paramteros.
-void LTC2986_configure_rtd(LTC2986_t *LTM, LTC2986_sensor_t type, uint8_t channel_number) {
+void LTC2986_configure_rtd(LTC2986_t *LTM, LTC2986_sensor_t type, uint8_t channel_number, uint8_t sense_channel) {
 	uint32_t configuration;
 	configuration = type << 27;
-	configuration |= (channel_number - 1) << 22; // Assuming sense resistors are the two contiguous below the "main" channel. For example, if sensor uses channel 5, the sense resistors are assumed to be 4 & 3.
-	configuration |= 0xA << 20; // 4-wire with current source rotation
-	configuration |= 0x3 << 18; // TODO: Dont know what this means, but lets try
-	configuration |= 0x1 << 12; // American curve for the RTD. TODO: Check it is the right curve.
-	// TODO check the rest of parameters at https://www.mouser.cl/datasheet/2/609/ltm2985-2887489.pdf Table 29. RTD Channel Assignment Word
+	configuration |= (sense_channel) << 22;
+	configuration |= 0x0 << 20; // 2-wire
+	configuration |= 0x0 << 18; // no rotation, no sharing
+	configuration |= 0x7 << 14; // 500 uA
+	configuration |= 0x1 << 12; // American curve for the RTD.
 	write_RAM(LTM, LTC2986_CH_ADDRESS_BASE + (4 * (channel_number - 1)), 4, (void*) &configuration);
 	return;
 }
@@ -70,6 +70,20 @@ void LTC2986_configure_thermocouple(LTC2986_t *LTM, LTC2986_sensor_t type, uint8
 	uint32_t configuration;
 	configuration = type << 27;
 	configuration |= cold_junction_channel << 22;
+	configuration |= 0b1 << 21; // Single-ended
+	configuration |= 0b0 << 20; // TC_OPEN_CKT_DETECT__NO
+	configuration |= 0x0 << 18; // TC_OPEN_CKT_DETECT_CURRENT__10UA
+	write_RAM(LTM, LTC2986_CH_ADDRESS_BASE + (4 * (channel_number - 1)), 4, (void*) &configuration);
+	return;
+}
+
+void LTC2986_configure_sense_resistor(LTC2986_t *LTM, uint8_t channel_number, float resistance) {
+	uint32_t configuration = 0;
+	if(resistance > 131.07) {
+		// This is a programming error.
+		resistance = 131;
+	}
+	configuration = (uint32_t) ((int) resistance* 1024);
 	write_RAM(LTM, LTC2986_CH_ADDRESS_BASE + (4 * (channel_number - 1)), 4, (void*) &configuration);
 	return;
 }

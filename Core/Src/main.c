@@ -26,8 +26,9 @@
 #include "stdbool.h"
 #include "stdlib.h"
 #include "stm32f4xx_hal_flash.h"
-#include "max31856.h"
+//#include "max31856.h"
 #include "max7219.h"
+#include "LTC2986.h"
 #include <math.h>
 #include "keypad.h"
 #include "ee.h"
@@ -80,11 +81,7 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-max31856_t therms[4] = {{&hspi2, {SPI_CS1_GPIO_Port, SPI_CS1_Pin}},
-		                {&hspi2, {SPI_CS2_GPIO_Port, SPI_CS2_Pin}},
-						{&hspi2, {SPI_CS3_GPIO_Port, SPI_CS3_Pin}},
-						{&hspi2, {SPI_CS4_GPIO_Port, SPI_CS4_Pin}}
-};
+LTC2986_t therms = {&hspi2, {SPI_CS1_GPIO_Port, SPI_CS1_Pin}};
 /* USER CODE END 0 */
 
 /**
@@ -135,18 +132,17 @@ int main(void)
 
   HAL_GPIO_WritePin(SPI3_CS_GPIO_Port, SPI3_CS_Pin, 1);
 
-  HAL_Delay(200);
+  HAL_Delay(400); // Minimum is 200ms for LTM start-up
 
 
   // Configure Thermocouples Variables
   for(int i = 0; i < THERMOCOUPLES; i++) {
-    max31856_init(therms + i);
-	max31856_set_noise_filter(therms + i, CR0_FILTER_OUT_50Hz);
-	max31856_set_cold_junction_enable(therms + i, CR0_CJ_ENABLED);
-	max31856_set_thermocouple_type(therms + i, CR1_TC_TYPE_K);
-	max31856_set_average_samples(therms + i, CR1_AVG_TC_SAMPLES_16);
-	max31856_set_open_circuit_fault_detection(therms + i, CR0_OC_DETECT_ENABLED_TC_LESS_2ms);
-	max31856_set_conversion_mode(therms + i, CR0_CONV_CONTINUOUS);
+	while(!LTC2986_is_ready(&therms));
+	LTC2986_global_configure(&therms);
+	LTC2986_configure_rtd(&therms, LTC2986_RTD_PT_100, 4);
+	LTC2986_configure_thermocouple(&therms, LTC2986_TYPE_T_THERMOCOUPLE, 5, 4);
+	LTC2986_configure_thermocouple(&therms, LTC2986_TYPE_T_THERMOCOUPLE, 6, 4);
+	LTC2986_configure_thermocouple(&therms, LTC2986_TYPE_T_THERMOCOUPLE, 7, 4);
   }
 
   // Delay just for stability of configuration
@@ -191,8 +187,11 @@ int main(void)
 	float temps[16] = {0};
 	char buffers[4][12];
 	float temps_2d[THERMOCOUPLES];
-	for(int i = 0; i < THERMOCOUPLES; i++) {
-		temps[i] = max31856_read_TC_temp(therms + i);
+	for(int i = 5; i < 5 + THERMOCOUPLES; i++) {
+		temps[i] = LTC2986_measure_channel(&therms, i);
+		//if(isnan(temps[i])) { // Fault read detected
+		//	return(1);
+		//}
 		temperatures[i] = (int)(temps[i] * 100);
 	  	if(temperatures[i] > 9999) temperatures[i] = 9999;
 	  	else if(temperatures[i] < 1000) temperatures[i] = 1000;
@@ -205,8 +204,7 @@ int main(void)
 
   	//max7219_Clean();
   	for(int i = 0; i < THERMOCOUPLES; i++) {
-  		max31856_read_fault(therms + i);
-  		if (therms[i].sr.val) {
+  		if (isnan(temps[i])) {
   			//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 1\n", strlen("Fault Probe 1\n"), 100);
   			max7219_PrintDigit(i * 4 + 4, LETTER_E, false);
   			max7219_PrintDigit(i * 4 + 3, LETTER_E, false);

@@ -76,6 +76,7 @@ void LTC2986_configure_sense_resistor(LTC2986_t *LTM, uint8_t channel_number, fl
 void LTC2986_configure_thermocouple(LTC2986_t *LTM, LTC2986_sensor_t type, uint8_t channel_number, uint8_t cold_juntion_channel);
 float LTC2986_measure_channel(LTC2986_t *LTM, uint8_t channel_number);
 uint8_t LTC2986_is_ready(LTC2986_t *LTM);
+uint8_t LTC2986_read_status(LTC2986_t *LTM);
 
 
 

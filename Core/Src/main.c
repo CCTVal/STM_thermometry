@@ -53,6 +53,7 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
+SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi2;
 SPI_HandleTypeDef hspi3;
 
@@ -75,13 +76,15 @@ static void MX_I2C1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_SPI3_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-LTC2986_t therms = {&hspi2, {SPI_CS1_GPIO_Port, SPI_CS1_Pin}};
+LTC2986_t therms = {&hspi1, {SPI1_CS_GPIO_Port, SPI1_CS_Pin}};
+int channels[1] = {2};
 /* USER CODE END 0 */
 
 /**
@@ -117,6 +120,7 @@ int main(void)
   MX_SPI2_Init();
   MX_SPI3_Init();
   MX_USART2_UART_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart2, cadena, 1);
 
@@ -125,6 +129,8 @@ int main(void)
   HAL_GPIO_WritePin(SPI_CS1_GPIO_Port, SPI_CS1_Pin, GPIO_PIN_RESET);
 
   // Sube CS del SPI1 para bloquear la comunicación
+  HAL_GPIO_WritePin(therms.cs_pin.gpio_port, therms.cs_pin.gpio_pin, 1);
+
   HAL_GPIO_WritePin(SPI_CS1_GPIO_Port, SPI_CS1_Pin, 1);
   HAL_GPIO_WritePin(SPI_CS2_GPIO_Port, SPI_CS2_Pin, 1);
   HAL_GPIO_WritePin(SPI_CS3_GPIO_Port, SPI_CS3_Pin, 1);
@@ -136,13 +142,11 @@ int main(void)
 
 
   // Configure Thermocouples Variables
-  for(int i = 0; i < THERMOCOUPLES; i++) {
-	while(!LTC2986_is_ready(&therms));
-	LTC2986_global_configure(&therms);
-	LTC2986_configure_rtd(&therms, LTC2986_RTD_PT_100, 7, 5);
-	LTC2986_configure_sense_resistor(&therms, 5, 100);
-	LTC2986_configure_thermocouple(&therms, LTC2986_TYPE_T_THERMOCOUPLE, 2, 7);
-  }
+  while(!LTC2986_is_ready(&therms));
+  LTC2986_global_configure(&therms);
+  LTC2986_configure_rtd(&therms, LTC2986_RTD_PT_100, 7, 5);
+  LTC2986_configure_sense_resistor(&therms, 5, 100);
+  LTC2986_configure_thermocouple(&therms, LTC2986_TYPE_T_THERMOCOUPLE, 2, 7);
 
   // Delay just for stability of configuration
   HAL_Delay(1500);
@@ -170,6 +174,8 @@ int main(void)
   HAL_Delay(3000);
   max7219_Clean();
 
+  HAL_UART_Transmit(&huart2, (uint8_t *) "Holaaa\n\r", strlen("Holaaa\n\r"), 100);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -186,23 +192,33 @@ int main(void)
 	float temps[16] = {0};
 	char buffers[4][12];
 	float temps_2d[THERMOCOUPLES];
-	for(int i = 5; i < 5 + THERMOCOUPLES; i++) {
+	//for(int i = 5; i < 5 + THERMOCOUPLES; i++) {
+	int i = 2;
+	    temps[i] = 34;
+	    uint8_t temp_var = LTC2986_read_status(&therms);
+	    sprintf(buffers[i], "%u\n\r", temp_var);
+		HAL_UART_Transmit(&huart2, (uint8_t *) buffers[i], strlen(buffers[i]), 100);
 		temps[i] = LTC2986_measure_channel(&therms, i);
+		sprintf(buffers[i], "%0.2f\n\r", temps[i]);
+		HAL_UART_Transmit(&huart2, (uint8_t *) buffers[i], strlen(buffers[i]), 100);
+
 		//if(isnan(temps[i])) { // Fault read detected
 		//	return(1);
 		//}
+
 		temperatures[i] = (int)(temps[i] * 100);
 	  	if(temperatures[i] > 9999) temperatures[i] = 9999;
 	  	else if(temperatures[i] < 1000) temperatures[i] = 1000;
 
 	  	sprintf(buffers[i], "%0.2f\n\r", temps[i]);
 	  	temps_2d[i] = roundf(temps[i] * 100) / 100;
-	}
+
 
   	HAL_Delay(200);
 
   	//max7219_Clean();
-  	for(int i = 0; i < THERMOCOUPLES; i++) {
+
+  	//for(int i = 0; i < THERMOCOUPLES; i++) {
   		if (isnan(temps[i])) {
   			//HAL_UART_Transmit(&huart2, (uint8_t *)"Fault Probe 1\n", strlen("Fault Probe 1\n"), 100);
   			max7219_PrintDigit(i * 4 + 4, LETTER_E, false);
@@ -212,7 +228,6 @@ int main(void)
   		} else {
   			max7219_PrintFtos(i * 4 + 4, temps_2d[i], 2);
   		}
-  	}
 
 	HAL_Delay(1000);
   }
@@ -291,6 +306,44 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+
+  /* USER CODE BEGIN SPI1_Init 0 */
+
+  /* USER CODE END SPI1_Init 0 */
+
+  /* USER CODE BEGIN SPI1_Init 1 */
+
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI1_Init 2 */
+
+  /* USER CODE END SPI1_Init 2 */
 
 }
 
@@ -420,13 +473,20 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, SPI1_CS_Pin|SPI_CS4_Pin|SPI_CS3_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, keypadColumn1_Pin|keypadColumn2_Pin|SPI_CS2_Pin|keypadColumn3_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, SPI_CS4_Pin|SPI_CS3_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, SPI3_CS_Pin|SPI_CS1_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : SPI1_CS_Pin SPI_CS4_Pin SPI_CS3_Pin */
+  GPIO_InitStruct.Pin = SPI1_CS_Pin|SPI_CS4_Pin|SPI_CS3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : keypadColumn1_Pin keypadColumn2_Pin SPI_CS2_Pin keypadColumn3_Pin */
   GPIO_InitStruct.Pin = keypadColumn1_Pin|keypadColumn2_Pin|SPI_CS2_Pin|keypadColumn3_Pin;
@@ -440,13 +500,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : SPI_CS4_Pin SPI_CS3_Pin */
-  GPIO_InitStruct.Pin = SPI_CS4_Pin|SPI_CS3_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : SPI3_CS_Pin SPI_CS1_Pin */
   GPIO_InitStruct.Pin = SPI3_CS_Pin|SPI_CS1_Pin;

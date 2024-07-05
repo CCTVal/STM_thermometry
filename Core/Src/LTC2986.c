@@ -35,6 +35,7 @@ void read_RAM(LTC2986_t *LTM, uint16_t address, int length, uint8_t *buffer) {
 	HAL_SPI_Transmit(LTM->spi_handle, &read_instruction, 1, LTC2986_SPI_TIMEOUT); // Read instruction
 	HAL_SPI_Transmit(LTM->spi_handle, address_8bit, 2, LTC2986_SPI_TIMEOUT); // Address
 	HAL_SPI_Receive(LTM->spi_handle, buffer, length, LTC2986_SPI_TIMEOUT);
+	HAL_GPIO_WritePin(LTM->cs_pin.gpio_port, LTM->cs_pin.gpio_pin, GPIO_PIN_SET);
 	return;
 }
 
@@ -94,6 +95,12 @@ uint8_t LTC2986_is_ready(LTC2986_t *LTM) {
 	uint8_t started_convertion = status & 0b10000000;
 	uint8_t done = status & 0b01000000;
 	return(done && !started_convertion);
+}
+
+uint8_t LTC2986_read_status(LTC2986_t *LTM) {
+	uint8_t status;
+	read_RAM(LTM, LTC2986_STATUS_REGISTER, 1, &status);
+	return(status);
 }
 
 float LTC2986_measure_channel(LTC2986_t *LTM, uint8_t channel_number) {
